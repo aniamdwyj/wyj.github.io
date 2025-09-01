@@ -1,0 +1,26 @@
+[
+    {
+        "id": "post1",
+        "title": "欢迎来到我的博客",
+        "filename": "post1.md",
+        "date": "2025-01-15",
+        "description": "我的第一篇博客文章，介绍这个博客系统的特点和技术栈。",
+        "tags": ["博客", "Markdown", "Web开发"]
+    },
+    {
+        "id": "post2", 
+        "title": "前端开发学习笔记",
+        "filename": "post2.md",
+        "date": "2025-01-14",
+        "description": "分享前端开发学习过程中的心得体会，包括HTML、CSS、JavaScript的最佳实践。",
+        "tags": ["前端", "JavaScript", "CSS", "学习笔记"]
+    },
+    {
+        "id": "post3",
+        "title": "个人项目开发心得",
+        "filename": "post3.md", 
+        "date": "2025-01-13",
+        "description": "记录个人项目开发过程中的收获、挑战和解决方案，包括技术选型和性能优化。",
+        "tags": ["项目开发", "Vue.js", "Node.js", "经验分享"]
+    }
+]
