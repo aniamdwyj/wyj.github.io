@@ -1,1 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="wyj的个人网站 - 欢迎来到我的个人空间">
+    <title>首页 - wyj的个人网站</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+</head>
+<body class="index-page">
+    <header>
+        <nav>
+            <ul>
+                <li><a href="index.html">首页</a></li>
+                <li><a href="about.html">关于我</a></li>
+                <li><a href="portfolio.html">作品/爱好</a></li>
+                <li><a href="contact.html">联系方式</a></li>
+            </ul>
+            <button id="theme-toggle" class="theme-toggle" aria-label="切换主题">
+                <span class="theme-icon">☀️</span>
+            </button>
+        </nav>
+    </header>
 
+    <main>
+        <!-- Hero区域 -->
+        <section class="hero">
+            <div class="hero-content">
+                <h1 class="typewriter-text" id="typewriter">
+                    <span id="text-display"></span>
+                    <span class="cursor">|</span>
+                </h1>
+                <p class="hero-subtitle">欢迎来到我的数字世界</p>
+            </div>
+        </section>
+        
+        <!-- 简介区域 -->
+        <section class="intro">
+            <p>这个网站是我展示自己的窗口，你可以在这里了解我、查看我的作品，或者与我取得联系。</p>
+        </section>
+
+        <!-- 博客区域 -->
+        <section class="blog-section" id="blog-section">
+            <h2 class="blog-title">我的博客</h2>
+            <div class="blog-container" id="blog-container">
+                <!-- 博文列表 - 初始居中显示 -->
+                <div class="blog-sidebar" id="blog-sidebar">
+                    <div id="posts-loading" class="posts-loading">
+                        <p>正在加载博文列表...</p>
+                    </div>
+                    <ul id="posts-list" class="posts-list" style="display: none;">
+                        <!-- 博文标题列表将通过JavaScript动态生成 -->
+                    </ul>
+                </div>
+                
+                <!-- 文章阅读区域 - 初始隐藏 -->
+                <div class="blog-content" id="blog-content">
+                    <div class="article-header">
+                        <button class="back-button" id="back-button" title="返回文章列表">
+                            ← 返回
+                        </button>
+                    </div>
+                    <div id="article-content" class="article-content">
+                        <!-- Markdown内容将在这里渲染 -->
+                    </div>
+                    <div id="article-loading" class="article-loading" style="display: none;">
+                        <p>正在加载文章...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 wyj</p>
+    </footer>
+
+    <script>
+        // 主题切换功能
+        const themeToggle = document.querySelector('#theme-toggle');
+        const themeIcon = document.querySelector('.theme-icon');
+        const body = document.body;
+
+        // 检查本地存储的主题偏好，默认为浅色主题
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        
+        // 确保默认状态是浅色主题
+        if (currentTheme === 'dark') {
+            body.classList.add('dark-theme');
+            themeIcon.textContent = '🌙';
+        } else {
+            // 明确设置浅色主题状态
+            body.classList.remove('dark-theme');
+            themeIcon.textContent = '☀️';
+            localStorage.setItem('theme', 'light');
+        }
+
+        // 主题切换事件监听器
+        themeToggle.addEventListener('click', function() {
+            body.classList.toggle('dark-theme');
+            
+            if (body.classList.contains('dark-theme')) {
+                themeIcon.textContent = '🌙';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                themeIcon.textContent = '☀️';
+                localStorage.setItem('theme', 'light');
+            }
+        });
+
+        // 打字机效果
+        class TypeWriter {
+            constructor(element, texts, speed = 100, deleteSpeed = 50, pauseTime = 2000) {
+                this.element = element;
+                this.texts = texts;
+                this.speed = speed;
+                this.deleteSpeed = deleteSpeed;
+                this.pauseTime = pauseTime;
+                this.textIndex = 0;
+                this.charIndex = 0;
+                this.isDeleting = false;
+                this.init();
+            }
+
+            init() {
+                setTimeout(() => this.type(), 500); // 页面加载后500ms开始
+            }
+
+            type() {
+                const currentText = this.texts[this.textIndex];
+                
+                if (this.isDeleting) {
+                    // 删除字符
+                    this.element.textContent = currentText.substring(0, this.charIndex - 1);
+                    this.charIndex--;
+                } else {
+                    // 打字
+                    this.element.textContent = currentText.substring(0, this.charIndex + 1);
+                    this.charIndex++;
+                }
+
+                // 设置下一次执行的时间
+                let nextSpeed = this.isDeleting ? this.deleteSpeed : this.speed;
+                
+                // 如果打字完成，准备删除
+                if (!this.isDeleting && this.charIndex === currentText.length) {
+                    nextSpeed = this.pauseTime;
+                    this.isDeleting = true;
+                }
+                // 如果删除完成，切换到下一个文本
+                else if (this.isDeleting && this.charIndex === 0) {
+                    this.isDeleting = false;
+                    this.textIndex = (this.textIndex + 1) % this.texts.length;
+                    nextSpeed = 300; // 短暂停顿后开始下一句
+                }
+
+                setTimeout(() => this.type(), nextSpeed);
+            }
+        }
+
+        // 博客管理类
+        class BlogManager {
+            constructor() {
+                this.posts = [];
+                this.currentPost = null;
+            }
+
+            // 加载博客文章列表
+            async loadPosts() {
+                try {
+                    const response = await fetch('./posts/posts.json');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    this.posts = await response.json();
+                    this.renderPostsList();
+                } catch (error) {
+                    console.error('加载博客列表失败:', error);
+                    this.showError('无法加载博客列表');
+                }
+            }
+
+            // 渲染博客文章列表
+            renderPostsList() {
+                const postsLoading = document.getElementById('posts-loading');
+                const postsList = document.getElementById('posts-list');
+
+                postsLoading.style.display = 'none';
+                postsList.style.display = 'block';
+                postsList.innerHTML = '';
+
+                this.posts.forEach(post => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'post-item';
+                    listItem.dataset.postId = post.id;
+                    
+                    listItem.innerHTML = `
+                        <h3 class="post-title">${post.title}</h3>
+                        <div class="post-date">${this.formatDate(post.date)}</div>
+                    `;
+
+                    listItem.addEventListener('click', () => {
+                        this.loadPost(post);
+                        this.setActivePost(listItem);
+                    });
+
+                    postsList.appendChild(listItem);
+                });
+            }
+
+            // 加载并显示文章内容
+            async loadPost(post) {
+                try {
+                    this.showArticleLoading();
+                    
+                    const response = await fetch(`./posts/${post.filename}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const markdownContent = await response.text();
+                    const htmlContent = marked.parse(markdownContent);
+                    
+                    this.showArticleContent(htmlContent);
+                    this.currentPost = post;
+                    
+                } catch (error) {
+                    console.error('加载文章失败:', error);
+                    this.showError('无法加载文章内容');
+                }
+            }
+
+            // 显示文章加载状态
+            showArticleLoading() {
+                const blogContainer = document.getElementById('blog-container');
+                const articleContent = document.getElementById('article-content');
+                const articleLoading = document.getElementById('article-loading');
+                
+                // 首先触发布局转换
+                blogContainer.classList.add('expanded');
+                
+                // 显示加载状态
+                articleContent.style.display = 'none';
+                articleLoading.style.display = 'flex';
+            }
+
+            // 显示文章内容
+            showArticleContent(htmlContent) {
+                const articleContent = document.getElementById('article-content');
+                const blogContainer = document.getElementById('blog-container');
+                
+                document.getElementById('article-loading').style.display = 'none';
+                
+                articleContent.innerHTML = htmlContent;
+                articleContent.style.display = 'block';
+                
+                // 触发布局转换动画
+                blogContainer.classList.add('expanded');
+                
+                // 滚动到文章开头
+                setTimeout(() => {
+                    articleContent.scrollTop = 0;
+                }, 300);
+            }
+
+            // 显示错误信息
+            showError(message) {
+                const articleContent = document.getElementById('article-content');
+                const blogContainer = document.getElementById('blog-container');
+                
+                document.getElementById('article-loading').style.display = 'none';
+                
+                articleContent.innerHTML = `
+                    <div style="text-align: center; padding: 3rem; color: #d64545;">
+                        <h3>❌ 加载失败</h3>
+                        <p>${message}</p>
+                    </div>
+                `;
+                articleContent.style.display = 'block';
+                
+                // 触发布局转换动画
+                blogContainer.classList.add('expanded');
+            }
+
+            // 返回文章列表
+            returnToList() {
+                const blogContainer = document.getElementById('blog-container');
+                const articleContent = document.getElementById('article-content');
+                
+                // 移除展开状态
+                blogContainer.classList.remove('expanded');
+                
+                // 隐藏文章内容
+                setTimeout(() => {
+                    articleContent.style.display = 'none';
+                    articleContent.innerHTML = '';
+                }, 300);
+                
+                // 移除所有文章的激活状态
+                document.querySelectorAll('.post-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                this.currentPost = null;
+            }
+
+            // 设置当前激活的文章
+            setActivePost(activeItem) {
+                // 移除所有激活状态
+                document.querySelectorAll('.post-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                // 添加当前项的激活状态
+                activeItem.classList.add('active');
+            }
+
+            // 格式化日期
+            formatDate(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('zh-CN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            }
+        }
+
+        // 科纳米秘籍管理器
+        class KonamiCodeManager {
+            constructor() {
+                this.konamiCode = [
+                    'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
+                    'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight',
+                    'KeyB', 'KeyA'
+                ];
+                this.userInput = [];
+                this.isActivated = false;
+                this.touchSequence = [];
+                this.touchPattern = ['up', 'up', 'down', 'down', 'left', 'right', 'left', 'right', 'tap', 'tap'];
+                this.lastTouchTime = 0;
+                this.touchTimeout = null;
+                
+                this.initKeyListener();
+                this.initTouchListener();
+            }
+
+            initKeyListener() {
+                document.addEventListener('keydown', (event) => {
+                    this.handleKeyPress(event);
+                });
+            }
+
+            initTouchListener() {
+                let startX, startY;
+                
+                document.addEventListener('touchstart', (event) => {
+                    if (event.touches.length === 1) {
+                        startX = event.touches[0].clientX;
+                        startY = event.touches[0].clientY;
+                        this.lastTouchTime = Date.now();
+                    }
+                }, { passive: true });
+
+                document.addEventListener('touchend', (event) => {
+                    if (event.changedTouches.length === 1) {
+                        const endX = event.changedTouches[0].clientX;
+                        const endY = event.changedTouches[0].clientY;
+                        const deltaX = endX - startX;
+                        const deltaY = endY - startY;
+                        const minSwipeDistance = 30;
+                        
+                        let direction = null;
+                        
+                        // 检测滑动方向
+                        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                            // 水平滑动
+                            if (Math.abs(deltaX) > minSwipeDistance) {
+                                direction = deltaX > 0 ? 'right' : 'left';
+                            }
+                        } else {
+                            // 垂直滑动
+                            if (Math.abs(deltaY) > minSwipeDistance) {
+                                direction = deltaY > 0 ? 'down' : 'up';
+                            }
+                        }
+                        
+                        // 如果没有滑动，认为是点击
+                        if (!direction && Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
+                            direction = 'tap';
+                        }
+                        
+                        if (direction) {
+                            this.handleTouchInput(direction);
+                        }
+                    }
+                }, { passive: true });
+            }
+
+            handleTouchInput(direction) {
+                // 清除之前的超时
+                if (this.touchTimeout) {
+                    clearTimeout(this.touchTimeout);
+                }
+                
+                this.touchSequence.push(direction);
+                
+                // 保持序列长度
+                if (this.touchSequence.length > this.touchPattern.length) {
+                    this.touchSequence.shift();
+                }
+                
+                // 检查是否匹配
+                if (this.touchSequence.length === this.touchPattern.length) {
+                    if (this.checkTouchPattern()) {
+                        this.activateEasterEgg();
+                        return;
+                    }
+                }
+                
+                // 设置重置超时（3秒无操作重置）
+                this.touchTimeout = setTimeout(() => {
+                    this.touchSequence = [];
+                }, 3000);
+            }
+
+            checkTouchPattern() {
+                for (let i = 0; i < this.touchPattern.length; i++) {
+                    if (this.touchSequence[i] !== this.touchPattern[i]) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            handleKeyPress(event) {
+                // 阻止在输入框中触发
+                if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+                    return;
+                }
+
+                const key = event.code;
+
+                // 检查是否是秘籍中的按键
+                if (this.konamiCode.includes(key)) {
+                    this.userInput.push(key);
+                    
+                    // 保持队列长度不超过秘籍长度
+                    if (this.userInput.length > this.konamiCode.length) {
+                        this.userInput.shift();
+                    }
+                    
+                    // 检查是否匹配完整秘籍
+                    if (this.userInput.length === this.konamiCode.length) {
+                        if (this.checkKonamiCode()) {
+                            this.activateEasterEgg();
+                        }
+                    }
+                } else {
+                    // 如果按了错误的键，重置序列
+                    this.userInput = [];
+                }
+            }
+
+            checkKonamiCode() {
+                for (let i = 0; i < this.konamiCode.length; i++) {
+                    if (this.userInput[i] !== this.konamiCode[i]) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            activateEasterEgg() {
+                if (this.isActivated) return; // 防止重复激活
+                
+                this.isActivated = true;
+                console.log('🎮 科纳米秘籍激活！');
+                
+                // 保存游戏模式状态到localStorage
+                localStorage.setItem('retroMode', 'active');
+                
+                // 显示激活提示
+                this.showActivationMessage();
+                
+                // 切换到8-bit复古主题
+                setTimeout(() => {
+                    this.activate8BitTheme();
+                }, 1000);
+                
+                // 添加复古音效提示
+                this.playRetroSound();
+            }
+
+            showActivationMessage() {
+                const message = document.createElement('div');
+                message.innerHTML = `
+                    <div style="
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+                        color: white;
+                        padding: 2rem;
+                        border-radius: 10px;
+                        font-family: 'Courier New', monospace;
+                        font-size: 1.5rem;
+                        font-weight: bold;
+                        text-align: center;
+                        z-index: 10000;
+                        box-shadow: 0 0 30px rgba(255, 107, 107, 0.5);
+                        animation: konami-bounce 0.6s ease-in-out;
+                        max-width: 500px;
+                    ">
+                        🎮 KONAMI CODE ACTIVATED! 🎮<br>
+                        <span style="font-size: 1rem; margin-top: 0.5rem; display: block;">
+                            Welcome to the 8-bit world!
+                        </span>
+                        <span style="font-size: 0.8rem; margin-top: 0.5rem; display: block; color: #f0e6d9;">
+                            ${this.touchSequence.length > 0 ? '📱 触屏激活成功！' : '⌨️ 键盘激活成功！'}
+                        </span>
+                        <div style="margin-top: 1.5rem;">
+                            <a href="snake-game.html" style="
+                                background: rgba(0, 0, 0, 0.8);
+                                color: #00ff41;
+                                border: 2px solid #00ff41;
+                                padding: 0.8rem 1.5rem;
+                                border-radius: 5px;
+                                text-decoration: none;
+                                font-size: 1rem;
+                                font-weight: bold;
+                                display: inline-block;
+                                margin: 0.3rem;
+                                transition: all 0.3s ease;
+                                text-shadow: 1px 1px 0px #000;
+                            " onmouseover="this.style.background='#00ff41'; this.style.color='#000'; this.style.textShadow='none';" 
+                               onmouseout="this.style.background='rgba(0, 0, 0, 0.8)'; this.style.color='#00ff41'; this.style.textShadow='1px 1px 0px #000';">
+                                🐍 贪吃蛇游戏
+                            </a>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(message);
+                
+                // 5秒后移除提示（延长时间让用户看到游戏入口）
+                setTimeout(() => {
+                    if (message.parentNode) {
+                        message.parentNode.removeChild(message);
+                    }
+                }, 5000);
+            }
+
+            activate8BitTheme() {
+                document.body.classList.add('retro-8bit-theme');
+                
+                // 添加复古背景动画
+                this.addRetroBackground();
+                
+                // 重置按钮（让用户可以退出复古模式）
+                this.addResetButton();
+            }
+
+            addRetroBackground() {
+                const retroBg = document.createElement('div');
+                retroBg.className = 'retro-background';
+                retroBg.innerHTML = `
+                    <div class="pixel-rain"></div>
+                    <div class="retro-grid"></div>
+                `;
+                document.body.appendChild(retroBg);
+            }
+
+            addResetButton() {
+                const resetBtn = document.createElement('button');
+                resetBtn.innerHTML = '🎮 EXIT RETRO MODE';
+                resetBtn.className = 'retro-reset-btn';
+                resetBtn.addEventListener('click', () => {
+                    this.deactivateEasterEgg();
+                });
+                document.body.appendChild(resetBtn);
+                
+                // 添加游戏入口按钮
+                const gameBtn = document.createElement('a');
+                gameBtn.href = 'snake-game.html';
+                gameBtn.innerHTML = '🐍 贪吃蛇游戏';
+                gameBtn.className = 'retro-game-btn';
+                document.body.appendChild(gameBtn);
+            }
+
+            deactivateEasterEgg() {
+                document.body.classList.remove('retro-8bit-theme');
+                
+                // 清除localStorage状态
+                localStorage.removeItem('retroMode');
+                
+                // 移除复古元素
+                const retroBg = document.querySelector('.retro-background');
+                const resetBtn = document.querySelector('.retro-reset-btn');
+                const gameBtn = document.querySelector('.retro-game-btn');
+                
+                if (retroBg) retroBg.remove();
+                if (resetBtn) resetBtn.remove();
+                if (gameBtn) gameBtn.remove();
+                
+                this.isActivated = false;
+                this.userInput = []; // 重置输入序列
+                
+                console.log('🎮 复古模式已退出');
+            }
+
+            playRetroSound() {
+                // 使用Web Audio API创建复古音效
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // 创建经典的"power up"音效
+                    const frequencies = [262, 330, 392, 523]; // C4, E4, G4, C5
+                    
+                    frequencies.forEach((freq, index) => {
+                        setTimeout(() => {
+                            const oscillator = audioContext.createOscillator();
+                            const gainNode = audioContext.createGain();
+                            
+                            oscillator.connect(gainNode);
+                            gainNode.connect(audioContext.destination);
+                            
+                            oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+                            oscillator.type = 'square'; // 8-bit方波音色
+                            
+                            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                            
+                            oscillator.start(audioContext.currentTime);
+                            oscillator.stop(audioContext.currentTime + 0.3);
+                        }, index * 100);
+                    });
+                } catch (error) {
+                    console.log('音频播放失败，但这不影响彩蛋效果:', error);
+                }
+            }
+        }
+
+        // 等待DOM加载完成后启动打字机效果和博客系统
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 启动打字机效果
+            const textDisplay = document.getElementById('text-display');
+            const texts = [
+                '你好，我是wyj',
+                '一名计算机开发爱好者',
+                '期待与你的相遇'
+            ];
+            
+            new TypeWriter(textDisplay, texts, 120, 60, 2000);
+
+            // 启动博客系统
+            const blogManager = new BlogManager();
+            await blogManager.loadPosts();
+            
+            // 设置返回按钮事件监听器
+            const backButton = document.getElementById('back-button');
+            if (backButton) {
+                backButton.addEventListener('click', () => {
+                    blogManager.returnToList();
+                });
+            }
+            
+            // 初始化科纳米秘籍（隐藏彩蛋）
+            const konamiManager = new KonamiCodeManager();
+            window.konamiManager = konamiManager; // 全局访问，方便调试
+            
+            // 检查是否应该保持游戏模式
+            if (localStorage.getItem('retroMode') === 'active') {
+                setTimeout(() => {
+                    konamiManager.isActivated = true;
+                    konamiManager.activate8BitTheme();
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>
